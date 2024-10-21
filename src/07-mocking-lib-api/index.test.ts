@@ -4,7 +4,13 @@ import { throttledGetDataFromApi } from './index';
 
 jest.mock('axios');
 
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 beforeEach(() => {
+  jest.resetModules();
+
   (axios.create as jest.MockedFunction<typeof axios.create>).mockImplementation(
     () => axios,
   );
