@@ -2,44 +2,45 @@
 import axios from 'axios';
 import { throttledGetDataFromApi } from './index';
 
-jest.mock('axios');
-
-afterEach(() => {
-  jest.restoreAllMocks();
-});
-
-beforeEach(() => {
-  jest.resetModules();
-
-  (axios.create as jest.MockedFunction<typeof axios.create>).mockImplementation(
-    () => axios,
-  );
-
-  (axios.get as jest.MockedFunction<typeof axios.get>).mockImplementation(
-    () => {
-      return Promise.resolve({
-        data: [{ id: 1, name: 'books' }],
-      });
-    },
-  );
-});
-
 describe('throttledGetDataFromApi', () => {
+  beforeAll(() => {
+    jest.useFakeTimers();
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
   test('should create instance with provided base url', async () => {
-    const axiosSpy = jest.spyOn(axios, 'create');
-    const baseURL = 'https://jsonplaceholder.typicode.com';
+    const spyCreate = jest.spyOn(axios, 'create');
     await throttledGetDataFromApi('/posts');
-    expect(axiosSpy).toHaveBeenCalledWith({ baseURL });
+
+    jest.runAllTimers();
+    expect(spyCreate).toHaveBeenCalledWith({
+      baseURL: 'https://jsonplaceholder.typicode.com',
+    });
   });
 
   test('should perform request to correct provided url', async () => {
+    const spyGet = jest.spyOn(axios.Axios.prototype, 'get');
     await throttledGetDataFromApi('/posts');
-    expect(axios.get).toHaveBeenCalledTimes(0);
+
+    jest.runAllTimers();
+    expect(spyGet).toHaveBeenCalledTimes(1);
   });
 
   test('should return response data', async () => {
-    await expect(throttledGetDataFromApi('/posts')).resolves.toEqual([
-      { id: 1, name: 'books' },
-    ]);
+    const respData = {
+      resp1: 1,
+      resp2: 2,
+      resp3: 3,
+    };
+
+    jest
+      .spyOn(axios.Axios.prototype, 'get')
+      .mockResolvedValue({ data: respData });
+    const response = await throttledGetDataFromApi('/posts');
+
+    expect(response).toBe(respData);
   });
 });
